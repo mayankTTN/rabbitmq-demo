@@ -1,26 +1,25 @@
-/**
- * Created by mayank on 15/8/17.
- */
+const amqp = require('amqplib/callback_api');
 
+amqp.connect('amqp://localhost', (err, connection) => {
 
-var amqp = require('amqplib/callback_api');
+    connection.createChannel((err, channel) => {
 
-amqp.connect('amqp://localhost', function(err, conn) {
-    conn.createChannel(function(err, ch) {
+        let exchangeName = 'topic_logs_ex',
+            args = process.argv.slice(2),
+            routingKey = (args.length > 0) ? args[0] : 'log.info',
+            msg = args.slice(1).join(' ') || 'undefined';
 
-
-        var ex = 'topic_logs';
-        var args = process.argv.slice(2);
-        var key = (args.length > 0) ? args[0] : 'log.info';
-        var msg = args.slice(1).join(' ') || 'Hey Siri!';
-
-        //assert exchanger to persit or not
-        ch.assertExchange(ex, 'topic', {durable: false});
+        //assert exchange to persist or not
+        channel.assertExchange(exchangeName, 'topic', {durable: false});
 
         //publish or emit the message with key name
-        ch.publish(ex, key, new Buffer(msg));
-        console.log(" [x] Sent %s:'%s'", key, msg);
+        channel.publish(exchangeName, routingKey, new Buffer(msg));
+
+        console.log("Sent %s:'%s'", routingKey, msg);
     });
 
-    setTimeout(function() { conn.close(); process.exit(0) }, 500);
+    setTimeout(() => {
+        connection.close();
+        process.exit(0);
+    }, 500);
 });
