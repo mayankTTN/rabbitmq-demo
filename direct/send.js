@@ -1,29 +1,29 @@
-
 const amqp = require('amqplib/callback_api');
 
 //our tcp connection to rabbitmq
-amqp.connect('amqp://localhost', (err, conn) => {
+amqp.connect('amqp://localhost', (err, connection) => {
 
     //creating channel
-    conn.createChannel((err, ch) => {
+    connection.createChannel((err, channel) => {
 
-        let queueName = "direct-queue"
+        let exchangeName = "direct-exchange"
             , message = +new Date() + ' I started with nothing, and I still have most of it.';
 
 
-        //assert your queue either to persist in memory or not
-        ch.assertQueue(queueName, {durable: false});
+        channel.assertExchange(exchangeName, 'direct', {durable: false});
 
 
-
-        //send the message to queue
-        ch.sendToQueue(queueName, new Buffer(message));
+        //send the message to direct exchange
+        channel.publish(exchangeName, '', new Buffer(message));
 
 
         console.log("Your message has been send successfully.");
 
 
         //Task completed close the connection and exit the process
-        setTimeout(function() { conn.close(); process.exit(0) }, 500);
+        setTimeout(() => {
+            connection.close();
+            process.exit(0);
+        }, 500);
     });
 });

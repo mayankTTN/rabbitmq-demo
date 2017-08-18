@@ -1,24 +1,26 @@
-
 const amqp = require('amqplib/callback_api');
 
 //our tcp connection to rabbitmq
-amqp.connect('amqp://localhost', (err, conn) => {
+amqp.connect('amqp://localhost', (err, connection) => {
 
     //creating channel
-    conn.createChannel((err, ch) => {
+    connection.createChannel((err, channel) => {
 
-        let queueName = "direct-queue";
+        let exchangeName = "direct-exchange",
+            queueName = "direct-queue";
 
-        //assert your queue either to persist in memory or not
-        ch.assertQueue(queueName, {durable: false});
+        channel.assertExchange(exchangeName, 'direct', {durable: false});
 
+        channel.assertQueue(queueName, {durable: true});
 
-        console.log(" I am Waiting for you message...");
+        channel.bindQueue(queueName, exchangeName);
 
-        //to comsume message sent to the queue 'foo'
-        ch.consume(queueName, msg => {
-            console.log(" Received a message: ", msg.content.toString());
+        console.log(" [*] Waiting for messages in %s. To exit press CTRL+C", queueName);
+
+        channel.consume(queueName, msg => {
+
+            console.log(" [x] %s", msg.content.toString());
+
         }, {noAck: true});
-
     });
 });
