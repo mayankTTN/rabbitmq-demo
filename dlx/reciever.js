@@ -17,23 +17,39 @@ if (args.length == 0) {
 
 amqp.connect('amqp://localhost', function(err, conn) {
     conn.createChannel(function(err, ch) {
-        var ex = 'topic_logs';
+        var ex = 'topic_logs'
+            , deadExchange = 'our-ttl-deadExchange';
+
 
         ch.assertExchange(ex, 'topic', {durable: false});
 
-        //When the connection that declared it closes, the queue will be deleted by setting exclusive true
-        ch.assertQueue('', {exclusive: true,arguments  : {
-            "x-message-ttl" : 10000 // set ttl after which we will send our message to deadExchange
-            , "x-dead-letter-exchange": "our-ttl-deadExchange" // set our xdead letter exchange
+        //create dead exchange
+        ch.assertExchange(deadExchange, 'topic', {durable: false});
 
-            //TODO:- we need to create a queue of type topic/fanout/direct and bind a queue to catch these expired message
-        }}, function(err, q) {
-            console.log(' [*] Waiting for logs. To exit press CTRL+C');
+        //create queue to bind with deadExchange
+        ch.assertQueue('deadExchangeHandleQueue', {exclusive: true}, function (err, q) {
 
-            //to bind the matching key passed in argument with queue
+            //bind all keys to  deadexchange's queue
             args.forEach(function(key) {
-                ch.bindQueue(q.queue, ex, key);
+                ch.bindQueue(q.queue, deadExchange, key);
             });
-        });
+
+
+            //When the connection that declared it closes, the queue will be deleted by setting exclusive true
+            ch.assertQueue('', {exclusive: true,arguments  : {
+                "x-message-ttl" : 10000 // set ttl after which we will send our message to deadExchange
+                , "x-dead-letter-exchange": "our-ttl-deadExchange" // set our xdead letter exchange
+            }}, function(err, q) {
+                console.log(' [*] Waiting for logs. To exit press CTRL+C');
+
+                //to bind the matching key passed in argument with queue
+                args.forEach(function(key) {
+                    ch.bindQueue(q.queue, ex, key);
+                });
+            });
+
+        })
+
+
     });
 });
