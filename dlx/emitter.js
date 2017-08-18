@@ -1,26 +1,27 @@
-/**
- * Created by mayank on 15/8/17.
- */
+const amqp = require('amqplib/callback_api');
+
+//our tcp connection to rabbitmq
+amqp.connect('amqp://localhost', (err, connection) => {
+
+    //creating channel
+    connection.createChannel((err, channel) => {
+
+        let exchangeName = "direct-exchange-dlx"
+            , message = +new Date() + ' I started with nothing, and I still have most of it.';
 
 
-var amqp = require('amqplib/callback_api');
+        channel.assertExchange(exchangeName, 'direct', {durable: false});
 
-amqp.connect('amqp://localhost', function(err, conn) {
-    conn.createChannel(function(err, ch) {
+        //send the message to direct exchange
+        channel.publish(exchangeName, '', new Buffer(message));
 
 
-        var ex = 'topic_logs';
-        var args = process.argv.slice(2);
-        var key = (args.length > 0) ? args[0] : 'log.info';
-        var msg = args.slice(1).join(' ') || 'Hey Siri!';
+        console.log("Send : ", message);
 
-        //assert exchanger to persit or not
-        ch.assertExchange(ex, 'topic', {durable: false});
-
-        //publish or emit the message with key name
-        ch.publish(ex, key, new Buffer(msg));
-        console.log(" [x] Sent %s:'%s'", key, msg);
+        //Task completed close the connection and exit the process
+        setTimeout(() => {
+            connection.close();
+            process.exit(0);
+        }, 500);
     });
-
-    setTimeout(function() { conn.close(); process.exit(0) }, 500);
 });
