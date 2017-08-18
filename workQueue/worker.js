@@ -1,34 +1,33 @@
-/**
- * Created by mayank on 15/8/17.
- */
-
-var amqp = require('amqplib/callback_api');
+const amqp = require('amqplib/callback_api');
 
 //our tcp connection to rabbitmq
-amqp.connect('amqp://localhost', function(err, conn) {
+amqp.connect('amqp://localhost', (err, connection) => {
 
     //creating channel
-    conn.createChannel(function(err, ch) {
+    connection.createChannel((err, channel) => {
 
-        var queueName = "task_queue";
+        let queueName = "worker-task-queue";
 
         //assert your queue either to persist in memory or not
-        ch.assertQueue(queueName, {durable: false});
+        channel.assertQueue(queueName, {durable: false});
 
 
         console.log(" Waiting for message...");
 
-        //to consume message sent to the queue 'foo'
-        ch.consume(queueName, function(msg) {
-            //to fake that the consumer is busy
-            var secs = msg.content.toString().split('.').length - 1;
+        //to consume message sent to the queue 'worker-task-queue'
+        channel.consume(queueName, message => {
 
-            console.log(" [x] Received %s", msg.content.toString());
-            setTimeout(function() {
-                console.log(" [x] Done");
-                ch.ack(msg);
-            }, secs * 1000);
-        }, {noAck: true});
+            console.log("Received %s", message.content.toString());
+            console.log("Processing data please wait...");
+
+            //to fake that the consumer is busy while processing the data.
+            setTimeout(() => {
+                console.log("Data processed successfully.");
+                channel.ack(message);
+            }, Math.floor((Math.random() * 10) + 1) * 1000);
+
+
+        }, {noAck: false});
 
     });
 });
