@@ -1,17 +1,21 @@
-/**
- * Created by ttnd on 16/8/17.
- */
-var amqp = require('amqplib/callback_api');
+const amqp = require('amqplib/callback_api');
 
-amqp.connect('amqp://localhost', function(err, conn) {
-    conn.createChannel(function(err, ch) {
-        var ex = 'logs';
-        var msg = process.argv.slice(2).join(' ') || 'Hello World!';
+amqp.connect('amqp://localhost', (err, connection) => {
 
-        ch.assertExchange(ex, 'fanout', {durable: false});
-        ch.publish(ex, '', new Buffer('{"mayank":"mayanksdvvsdvsd"}'));
-        console.log(" [x] Sent %s", msg);
+    connection.createChannel((err, channel) => {
+
+        let exchangeName = 'pub-sub',
+            message = "My secret messgae @ " + +new Date();
+
+        channel.assertExchange(exchangeName, 'fanout', {durable: false});
+
+        channel.publish(exchangeName, '', new Buffer(message));
+
+        console.log("Sent %s", message);
     });
 
-    setTimeout(function() { conn.close(); process.exit(0) }, 500);
+    setTimeout(() => {
+        connection.close();
+        process.exit(0);
+    }, 500);
 });

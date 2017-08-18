@@ -1,20 +1,23 @@
-/**
- * Created by ttnd on 16/8/17.
- */
-var amqp = require('amqplib/callback_api');
+const amqp = require('amqplib/callback_api');
 
-amqp.connect('amqp://localhost', function(err, conn) {
-    conn.createChannel(function(err, ch) {
-        var ex = 'logs';
+amqp.connect('amqp://localhost', (err, connection) => {
+    
+    connection.createChannel((err, channel) => {
+        
+        let exchangeName = 'pub-sub';
 
-        ch.assertExchange(ex, 'fanout', {durable: false});
+        channel.assertExchange(exchangeName, 'fanout', {durable: false});
 
-        ch.assertQueue('', {durable: true}, function(err, q) {
+        channel.assertQueue('', {durable: true}, (err, q) => {
+
             console.log(" [*] Waiting for messages in %s. To exit press CTRL+C", q.queue);
-            ch.bindQueue(q.queue, ex);
+            
+            channel.bindQueue(q.queue, exchangeName);
 
-            ch.consume(q.queue, function(msg) {
+            channel.consume(q.queue, msg => {
+
                 console.log(" [x] %s", msg.content.toString());
+
             }, {noAck: true});
         });
     });
